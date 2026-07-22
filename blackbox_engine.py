@@ -27,7 +27,9 @@ def adaptive_technical_bot_with_massive():
     base_rsi_low = 30
     base_rsi_high = 70
     
-    # ตัวแปรสำหรับนับเวลาส่งรายงานสถานะทุกๆ 1 ชั่วโมง (360 วินาที x 10 = 1 ชม. โดยประมาณ หรือปรับลดได้ตามต้องการ)
+    # 🔔 ส่งข้อความเข้า Discord ทันทีที่บอทเริ่มรัน เพื่อเช็กว่าเชื่อมต่อสำเร็จชัวร์ 100%
+    send_discord_alert("🟢 **Bot Started Successfully!** กำลังเชื่อมต่อ Massive API และเริ่มเฝ้าระวังตลาด XAUUSD แล้วครับ 🚀")
+
     status_counter = 0
     
     while True:
@@ -42,7 +44,7 @@ def adaptive_technical_bot_with_massive():
             if current_price == 0:
                 current_price = float(data.get("ticker", {}).get("day", {}).get("c", 0))
             
-            rsi = 50.0 # ค่าเริ่มต้นเผื่อข้อมูลยังไม่ครบ
+            rsi = 50.0
             volatility = 0.0
 
             if current_price > 0:
@@ -80,7 +82,6 @@ def adaptive_technical_bot_with_massive():
                 elif rsi > current_rsi_high:
                     signal = "SELL"
 
-                # ส่งสัญญาณเตือนทันทีเมื่อเกิดจุดซื้อขาย
                 if signal != "HOLD" and signal != last_signal:
                     entry_price = current_price
                     risk_distance = max(volatility * 2, 3.0)
@@ -106,7 +107,7 @@ def adaptive_technical_bot_with_massive():
                     send_discord_alert(alert_msg)
                     last_signal = signal
 
-            # ส่งรายงานสถานะปัจจุบันเข้า Discord ทุกๆ 360 รอบ (ประมาณ 1 ชั่วโมง ถ้าวนลูปทุก 10 วินาที)
+            # รายงานสถานะทุกๆ 1 ชั่วโมง
             status_counter += 1
             if status_counter >= 360:
                 status_msg = (
