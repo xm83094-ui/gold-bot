@@ -27,6 +27,9 @@ def adaptive_technical_bot_with_massive():
     base_rsi_low = 30
     base_rsi_high = 70
     
+    # ตัวแปรสำหรับนับเวลาส่งรายงานสถานะทุกๆ 1 ชั่วโมง (360 วินาที x 10 = 1 ชม. โดยประมาณ หรือปรับลดได้ตามต้องการ)
+    status_counter = 0
+    
     while True:
         try:
             ticker = "C:XAUUSD"
@@ -39,11 +42,14 @@ def adaptive_technical_bot_with_massive():
             if current_price == 0:
                 current_price = float(data.get("ticker", {}).get("day", {}).get("c", 0))
             
+            rsi = 50.0 # ค่าเริ่มต้นเผื่อข้อมูลยังไม่ครบ
+            volatility = 0.0
+
             if current_price > 0:
                 price_history.append(current_price)
                 if len(price_history) > 50:
                     price_history.pop(0)
-                print(f"📈 Fetched XAUUSD Price: {current_price}") # ปริ้นท์ราคาปัจจุบันโชว์ใน Logs ให้เห็นจะๆ
+                print(f"📈 Fetched XAUUSD Price: {current_price}")
 
             if len(price_history) >= 15:
                 prices_arr = np.array(price_history)
@@ -74,6 +80,7 @@ def adaptive_technical_bot_with_massive():
                 elif rsi > current_rsi_high:
                     signal = "SELL"
 
+                # ส่งสัญญาณเตือนทันทีเมื่อเกิดจุดซื้อขาย
                 if signal != "HOLD" and signal != last_signal:
                     entry_price = current_price
                     risk_distance = max(volatility * 2, 3.0)
@@ -98,6 +105,20 @@ def adaptive_technical_bot_with_massive():
                     )
                     send_discord_alert(alert_msg)
                     last_signal = signal
+
+            # ส่งรายงานสถานะปัจจุบันเข้า Discord ทุกๆ 360 รอบ (ประมาณ 1 ชั่วโมง ถ้าวนลูปทุก 10 วินาที)
+            status_counter += 1
+            if status_counter >= 360:
+                status_msg = (
+                    f"🤖 **Bot Status Report (Active)**\n"
+                    f"Asset: {ticker}\n"
+                    f"💰 **Current Price:** {current_price:.2f}\n"
+                    f"📈 **Current RSI:** {rsi:.2f}\n"
+                    f"⚡ **Market Volatility:** {volatility:.2f}\n"
+                    f"🔄 **Status:** กำลังเฝ้าระวังตลาดและรอสัญญาณ 24 ชม."
+                )
+                send_discord_alert(status_msg)
+                status_counter = 0
 
         except Exception as e:
             print(f"⚠️ Error in Massive API loop: {e}")
