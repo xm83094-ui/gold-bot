@@ -1,5 +1,6 @@
-Flask
+flask
 requests
 pandas
 numpy
+ta
 gunicorn
