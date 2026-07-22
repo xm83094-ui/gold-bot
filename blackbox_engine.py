@@ -8,7 +8,6 @@ import numpy as np
 app = Flask(__name__)
 
 DISCORD_WEBHOOK_URL = os.environ.get("https://discord.com/api/webhooks/1529405521788928051/NoeuuGexSsHyGHkB_Fd_zPYvXBgm0bQgV1plNiHNhi3W8M_11jPwBymXuq_p7o58X0Ye")
-# ใส่ API Key ของคุณที่ได้จากหน้าเว็บ Massive ตรง Environment Variable บน Railway
 MASSIVE_API_KEY = os.environ.get("MASSIVE_API_KEY", "VpkvAEuj1LeOnZp551NHuiLz45eyMsJi")
 
 def send_discord_alert(message):
@@ -22,7 +21,7 @@ def send_discord_alert(message):
 price_history = []
 
 def adaptive_technical_bot_with_massive():
-    print("🧠 Self-Adapting Bot with Massive API started...")
+    print("🚀 [SUCCESS] Bot thread is running and connecting to Massive API...")
     last_signal = None
     
     base_rsi_low = 30
@@ -30,26 +29,22 @@ def adaptive_technical_bot_with_massive():
     
     while True:
         try:
-            # 1. ดึงข้อมูลราคาจาก Massive API (ใช้ C:XAUUSD หรือคู่เงินที่ต้องการ)
-            ticker = "C:XAUUSD" # หรือ C:EURUSD ตามคู่ที่คุณต้องการเทรด
+            ticker = "C:XAUUSD"
             url = f"https://api.massive.com/v2/snapshot/locale/global/markets/forex/tickers/{ticker}?apiKey={MASSIVE_API_KEY}"
             
             response = requests.get(url, timeout=5)
             data = response.json()
             
-            # แกะโครงสร้าง JSON เพื่อดึงราคาล่าสุด (ประยุกต์ตามโครงสร้าง response ของ Massive)
-            # โดยทั่วไปราคาปัจจุบันจะอยู่ในหมวด 'ticker' -> 'lastQuote' หรือ 'day' -> 'c'
             current_price = float(data.get("ticker", {}).get("lastQuote", {}).get("p", 0))
             if current_price == 0:
-                # กรณีสำรอง ดึงราคาปิดล่าสุดของวัน
                 current_price = float(data.get("ticker", {}).get("day", {}).get("c", 0))
             
             if current_price > 0:
                 price_history.append(current_price)
                 if len(price_history) > 50:
                     price_history.pop(0)
+                print(f"📈 Fetched XAUUSD Price: {current_price}") # ปริ้นท์ราคาปัจจุบันโชว์ใน Logs ให้เห็นจะๆ
 
-            # 2. คำนวณความผันผวนและ RSI
             if len(price_history) >= 15:
                 prices_arr = np.array(price_history)
                 deltas = np.diff(prices_arr)
@@ -69,7 +64,6 @@ def adaptive_technical_bot_with_massive():
                     rs = avg_gain / avg_loss
                     rsi = 100 - (100 / (1 + rs))
 
-                # ปรับเกณฑ์อัตโนมัติ
                 dynamic_offset = min(int(volatility * 10), 10)
                 current_rsi_low = max(15, base_rsi_low - dynamic_offset)
                 current_rsi_high = min(85, base_rsi_high + dynamic_offset)
@@ -80,7 +74,6 @@ def adaptive_technical_bot_with_massive():
                 elif rsi > current_rsi_high:
                     signal = "SELL"
 
-                # 3. คำนวณจุด TP และ SL อัตโนมัติเมื่อเกิดสัญญาณ
                 if signal != "HOLD" and signal != last_signal:
                     entry_price = current_price
                     risk_distance = max(volatility * 2, 3.0)
@@ -107,7 +100,7 @@ def adaptive_technical_bot_with_massive():
                     last_signal = signal
 
         except Exception as e:
-            print(f"Error in Massive API loop: {e}")
+            print(f"⚠️ Error in Massive API loop: {e}")
         
         time.sleep(10)
 
@@ -115,6 +108,7 @@ def adaptive_technical_bot_with_massive():
 def index():
     return "Massive API Adaptive Bot is running!"
 
+print("🔌 Initializing Background Bot Thread...")
 threading.Thread(target=adaptive_technical_bot_with_massive, daemon=True).start()
 
 if __name__ == "__main__":
